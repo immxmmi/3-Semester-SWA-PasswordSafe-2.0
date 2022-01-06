@@ -62,7 +62,7 @@ public class Menu extends Tools implements IMenu{
                     if (locked) {
                         System.out.println("Please unlock first by entering the master password.");
                     } else {
-                        //Arrays.stream(passwordSafeEngine.)
+                        passwordServices.printSinglePassword();
                     }
                     break;
                 }
@@ -82,8 +82,7 @@ public class Menu extends Tools implements IMenu{
                         System.out.println("Please unlock first by entering the master password.");
                     } else {
                         System.out.println("Enter password name");
-                        String passwordName = read.next();
-                     //   this.passwordServices.DeletePassword(passwordName);
+                        this.passwordServices.deletePasswordByID();
                     }
                     break;
                 }

@@ -13,6 +13,8 @@ public class Main {
 
     public static void main(String [] args) throws Exception {
 
+       // File file = new File("./KEY/password/password.txt");
+       // File file1 = new File()
         System.out.println("Welcome to Passwordsafe");
         IMenu menu = new Menu();
         menu.startMenu();

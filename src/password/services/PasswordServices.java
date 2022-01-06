@@ -42,38 +42,6 @@ public class PasswordServices extends Tools{
     }
 
     /** PRINT **/
-    /**
-    public void printPasswordList() throws IOException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
-
-        File file = new File(this.fullPath);
-        if(!file.exists()){
-            System.out.println(ANSI_RED + "NO PASSWORD" + ANSI_RESET);
-            return;
-        }
-
-        BufferedReader reader;
-        reader = new BufferedReader(new FileReader(this.fullPath));
-
-
-        System.out.println(reader.readLine());
-        System.out.println(reader.readLine());
-        System.out.println(reader.readLine());
-        String line = reader.readLine();
-        String text = "";
-        String password = "";
-        while(line != null){
-            text = line.split("#")[0];
-            password = this.cipherFacility.Decrypt(line.split("#")[1]);
-            System.out.println(text+password);
-
-            line = reader.readLine();
-        }
-        reader.close();
-        System.out.println("");
-        System.out.println("");
-
-    }
-**/
     public void printPasswordList() throws IOException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
         int maxNr = 1;
         int maxCategory = 18;
@@ -83,18 +51,53 @@ public class PasswordServices extends Tools{
         System.out.println("|ID | Category           | Name           | Crypto           | Password                                                    |");
         for(int i = 0; i < getAllPW().size(); i++){
             System.out.println("|---|--------------------|----------------|------------------|-------------------------------------------------------------|");
-            System.out.print("| "+i+this.checkSpace(""+i,maxNr));
+            System.out.print(ANSI_BLUE+"| "+i+this.checkSpace(""+i,maxNr));
             System.out.print("| "+getAllPW().get(i).getCategory()+this.checkSpace(getAllPW().get(i).getCategory(),maxCategory));
             System.out.print("| "+getAllPW().get(i).getName()+this.checkSpace(getAllPW().get(i).getName(),maxName));
             System.out.print("| "+getAllPW().get(i).getCryptography()+this.checkSpace(""+getAllPW().get(i).getCryptography(),maxCrypto));
             System.out.print("| "+this.cipherFacility.Decrypt(getAllPW().get(i).getPlain()));
+            System.out.println(ANSI_RESET);
         }
-        System.out.println("\n|__________________________________________________________________________________________________________________________|");
+        System.out.println("|__________________________________________________________________________________________________________________________|");
 
+    }
+    public void printSinglePassword() throws IOException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
+        int index = getInputID();
+
+        if(getAllPW() == null){
+            return;
+        }
+        if(index < 0 || index > getAllPW().size()){
+            System.out.println(ANSI_RED + "PW - NOT FOUND" + ANSI_RESET);
+            return;
+        }
+
+
+        int maxNr = 1;
+        int maxCategory = 18;
+        int maxName = 14;
+        int maxCrypto = 16;
+        System.out.println(" __________________________________________________________________________________________________________________________");
+        System.out.println("|ID | Category           | Name           | Crypto           | Password                                                    |");
+
+        System.out.println("|---|--------------------|----------------|------------------|-------------------------------------------------------------|");
+        System.out.print(ANSI_BLUE+"| "+index+this.checkSpace(""+index,maxNr));
+        System.out.print("| "+getAllPW().get(index).getCategory()+this.checkSpace(getAllPW().get(index).getCategory(),maxCategory));
+        System.out.print("| "+getAllPW().get(index).getName()+this.checkSpace(getAllPW().get(index).getName(),maxName));
+        System.out.print("| "+getAllPW().get(index).getCryptography()+this.checkSpace(""+getAllPW().get(index).getCryptography(),maxCrypto));
+        System.out.print("| "+this.cipherFacility.Decrypt(getAllPW().get(index).getPlain()));
+        System.out.println(ANSI_RESET);
+        System.out.println("|__________________________________________________________________________________________________________________________|");
 
 
     }
 
+    /** INPUT **/
+    private int getInputID(){
+        System.out.println("PW - ID ?");
+        Scanner read = new Scanner(System.in);
+        return read.nextInt();
+    }
 
     /** CREATE **/
     public void createNewPassword() throws Exception {
@@ -170,6 +173,9 @@ public class PasswordServices extends Tools{
 
 
     /** UPDATE **/
+    private IPassword getPasswordByID(int id) throws IOException {
+        return getAllPW().get(id);
+    }
 
     /** ADD  **/
     private void addNewPassword(IPassword newPassword) throws Exception {
@@ -243,8 +249,60 @@ public class PasswordServices extends Tools{
     }
 
     /** DELETE **/
-    public void DeletePasswordByID(String passwordID) throws Exception {
+    public void deletePasswordByID() throws Exception {
 
+        int index = getInputID();
+        if(index < 0 || index > getAllPW().size()){
+            System.out.println(ANSI_RED + "PW - NOT FOUND" + ANSI_RESET);
+            return;
+        }
+
+        File file = new File(this.fullPath);
+        if(!file.exists()){System.out.println(ANSI_RED + "NO PASSWORD" + ANSI_RESET);return;}
+        BufferedReader reader = new BufferedReader(new FileReader(this.fullPath));
+
+        copyFile(reader.readLine());
+        copyFile(reader.readLine());
+        copyFile(reader.readLine());
+
+
+        String line = reader.readLine();
+        String text = "";
+        while(line != null){
+            text = line;
+            text = text.split("#")[0].replaceAll(" ","");
+            text = text.split(">")[0];
+            text = text.split("<")[0];
+
+            if(text.contains(""+index)){
+                System.out.println("LINE GEFUNDEN");
+            }else{
+                copyFile(line);
+            }
+
+            line = reader.readLine();
+        }
+        String oldFileName = file.getAbsolutePath();
+        file.delete();
+        System.out.println(renameCopyFile(oldFileName));
+        reader.close();
+    }
+
+    /** COPY FILE - DELETE **/
+    private void copyFile(String line) throws IOException {
+        String file = this.root + "copy.pw";
+        File copy = new File(file);
+        copy.createNewFile();
+        FileWriter fileWriter = new FileWriter(file,true);
+        fileWriter.write(line);
+        fileWriter.write("\n");
+        fileWriter.close();
+    }
+    private boolean renameCopyFile(String oldFileName){
+       String copy = this.root + "copy.pw";
+       File file = new File(copy);
+       File rename = new File(oldFileName);
+       return file.renameTo(rename);
     }
 
     /** UPDATE ID **/

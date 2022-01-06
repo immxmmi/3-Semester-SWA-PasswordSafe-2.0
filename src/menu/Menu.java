@@ -19,7 +19,7 @@ public class Menu extends Tools implements IMenu{
 
     /** PRINTER **/
     private void printMenu(){
-        System.out.println("Enter master (1), show all (2), show single (3), add (4), delete(5), set new master (6), Abort (0)");
+        System.out.println(ANSI_BLUE + "Enter master (1), show all (2), show single (3), add (4), delete(5), update(6), set new master (7), Abort (0)" + ANSI_RESET);
     }
 
     @Override
@@ -60,7 +60,7 @@ public class Menu extends Tools implements IMenu{
                 /** PRINT PW **/
                 case 3: {
                     if (locked) {
-                        System.out.println("Please unlock first by entering the master password.");
+                        System.out.println(ANSI_RED + "Please unlock first by entering the master password." + ANSI_RESET);
                     } else {
                         passwordServices.printSinglePassword();
                     }
@@ -69,7 +69,7 @@ public class Menu extends Tools implements IMenu{
                 /**  CREATE NEW PW **/
                 case 4: {
                     if (locked) {
-                        System.out.println("Please unlock first by entering the master password.");
+                        System.out.println(ANSI_RED + "Please unlock first by entering the master password." + ANSI_RESET);
                     } else {
                         PasswordServices passwordServices = new PasswordServices("password.txt",masterKey);
                         passwordServices.createNewPassword();
@@ -79,15 +79,24 @@ public class Menu extends Tools implements IMenu{
                 /** DELETE PW **/
                 case 5: {
                     if (locked) {
-                        System.out.println("Please unlock first by entering the master password.");
+                        System.out.println(ANSI_RED + "Please unlock first by entering the master password." + ANSI_RESET);
                     } else {
                         System.out.println("Enter password name");
-                        this.passwordServices.deletePasswordByID();
+                        this.passwordServices.deletePasswordMenu();
+                    }
+                    break;
+                }
+                /** UPDATE PW **/
+                case 6: {
+                    if (locked) {
+                        System.out.println(ANSI_RED + "Please unlock first by entering the master password." + ANSI_RESET);
+                    } else {
+                        this.passwordServices.updatePassword();
                     }
                     break;
                 }
                 /** CREATE SET NEW MASTER KEY**/
-                case 6:{
+                case 7:{
                     locked = true;
                     this.passwordServices = null;
                     masterKeyServices.setNewMasterKey();

@@ -39,6 +39,11 @@ public class PasswordServices extends Tools{
                 .build();
         this.fullPath =this.root + fileName;
 
+       // File oldFile = new File("./KEY/password/oldPW.txt");
+       // if(oldFile.exists()){
+       //     oldFile.delete();
+       // }
+
     }
 
     /** PRINT **/
@@ -49,14 +54,17 @@ public class PasswordServices extends Tools{
         int maxCrypto = 16;
         System.out.println(" __________________________________________________________________________________________________________________________");
         System.out.println("|ID | Category           | Name           | Crypto           | Password                                                    |");
-        for(int i = 0; i < getAllPW().size(); i++){
-            System.out.println("|---|--------------------|----------------|------------------|-------------------------------------------------------------|");
-            System.out.print(ANSI_BLUE+"| "+i+this.checkSpace(""+i,maxNr));
-            System.out.print("| "+getAllPW().get(i).getCategory()+this.checkSpace(getAllPW().get(i).getCategory(),maxCategory));
-            System.out.print("| "+getAllPW().get(i).getName()+this.checkSpace(getAllPW().get(i).getName(),maxName));
-            System.out.print("| "+getAllPW().get(i).getCryptography()+this.checkSpace(""+getAllPW().get(i).getCryptography(),maxCrypto));
-            System.out.print("| "+this.cipherFacility.Decrypt(getAllPW().get(i).getPlain()));
-            System.out.println(ANSI_RESET);
+
+        if(getAllPW() != null){
+            for(int i = 0; i < getAllPW().size(); i++){
+                System.out.println("|---|--------------------|----------------|------------------|-------------------------------------------------------------|");
+                System.out.print(ANSI_BLUE+"| "+i+this.checkSpace(""+i,maxNr));
+                System.out.print("| "+getAllPW().get(i).getCategory()+this.checkSpace(getAllPW().get(i).getCategory(),maxCategory));
+                System.out.print("| "+getAllPW().get(i).getName()+this.checkSpace(getAllPW().get(i).getName(),maxName));
+                System.out.print("| "+getAllPW().get(i).getCryptography()+this.checkSpace(""+getAllPW().get(i).getCryptography(),maxCrypto));
+                System.out.print("| "+this.cipherFacility.Decrypt(getAllPW().get(i).getPlain()));
+                System.out.println(ANSI_RESET);
+            }
         }
         System.out.println("|__________________________________________________________________________________________________________________________|");
 
@@ -117,7 +125,6 @@ public class PasswordServices extends Tools{
                 .build();
         this.addNewPassword(newPassword);
     }
-
     private IPassword buildPassword(String category, String name, Cryptography cryptography, String password){
         return Password.builder()
                 .name(name)
@@ -127,55 +134,31 @@ public class PasswordServices extends Tools{
                 .build();
     }
 
-    private ArrayList<IPassword> getAllPW() throws IOException {
-        File file = new File(this.fullPath);
-        if(!file.exists()){
-            System.out.println(ANSI_RED + "NO PASSWORD" + ANSI_RESET);
-            return null;
+    /** UPDATE **/ 
+    public void updatePassword() throws Exception {
+        int index = this.getInputID();
+        this.addNewPassword(this.updatePasswordMenu(index));
+        deletePasswordByID(index);
+
+    }
+    private IPassword updatePasswordMenu(int index) throws IOException {
+        IPassword password = getPasswordByID(index);
+        System.out.println("Change PW");
+        System.out.println("1. Category: " + password.getCategory());
+        System.out.println("2. Name: " + password.getName());
+        System.out.println("3. Password: " + password.getPlain());
+        System.out.println("4. Cryptography: " + password.getCryptography());
+        Scanner read = new Scanner(System.in);
+
+        switch (read.nextInt()){
+            case 1: System.out.println("Set new category: "); String input = read.nextLine();password.setCategory(input);break;
+            case 2: System.out.println("Set new name: "); password.setName(read.nextLine());break;
+            case 3: System.out.println("Set new password: "); password.setPlain(read.nextLine());break;
+            case 4: System.out.println("Set new cryptography: "); password.setCryptography(Cryptography.valueOf(read.nextLine()));break;
         }
 
-        ArrayList<IPassword> PWList = new ArrayList<>();
-        BufferedReader reader;
-        reader = new BufferedReader(new FileReader(this.fullPath));
-
-        reader.readLine();
-        reader.readLine();
-        reader.readLine();
-
-
-        String line = reader.readLine();
-        String password = "";
-        String name = "";
-        String category = "";
-        Cryptography crypto = null;
-
-
-        while(line != null){
-            password = line.split("#")[1].replaceAll(" ","");
-            line = line.split("#")[0].replaceAll(" ","");
-            crypto = Cryptography.valueOf(line.split(">")[1].replace("|",""));
-            line = line.split(">")[0];
-            name = line.split("<")[1].replace("|","");
-            line = line.split("<")[0];
-            category = line.split("~")[1].replace("|","");
-
-            PWList.add(this.buildPassword(category,name,crypto,password));
-
-
-           // System.out.println(text+password);
-
-            line = reader.readLine();
-        }
-        reader.close();
-
-     return PWList;
-    }
-
-
-    /** UPDATE **/
-    private IPassword getPasswordByID(int id) throws IOException {
-        return getAllPW().get(id);
-    }
+        return password;
+    } // TODO: 06.01.2022 EINGABE PROBLEME
 
     /** ADD  **/
     private void addNewPassword(IPassword newPassword) throws Exception {
@@ -249,17 +232,22 @@ public class PasswordServices extends Tools{
     }
 
     /** DELETE **/
-    public void deletePasswordByID() throws Exception {
-
+    public void deletePasswordMenu() throws Exception {
+        System.out.println("DELETE - MENU");
         int index = getInputID();
         if(index < 0 || index > getAllPW().size()){
             System.out.println(ANSI_RED + "PW - NOT FOUND" + ANSI_RESET);
             return;
         }
-
+        deletePasswordByID(index);
+    }
+    private void deletePasswordByID(int index) throws Exception {
         File file = new File(this.fullPath);
         if(!file.exists()){System.out.println(ANSI_RED + "NO PASSWORD" + ANSI_RESET);return;}
-        BufferedReader reader = new BufferedReader(new FileReader(this.fullPath));
+        File oldFile = new File("./KEY/password/oldPW.txt");
+        file.renameTo(oldFile);
+
+        BufferedReader reader = new BufferedReader(new FileReader(oldFile));
 
         copyFile(reader.readLine());
         copyFile(reader.readLine());
@@ -274,17 +262,14 @@ public class PasswordServices extends Tools{
             text = text.split(">")[0];
             text = text.split("<")[0];
 
-            if(text.contains(""+index)){
-                System.out.println("LINE GEFUNDEN");
-            }else{
+            if(!text.contains(""+index)){
                 copyFile(line);
             }
 
             line = reader.readLine();
         }
-        String oldFileName = file.getAbsolutePath();
-        file.delete();
-        System.out.println(renameCopyFile(oldFileName));
+
+        renameCopyFile(this.fullPath);
         reader.close();
     }
 
@@ -305,11 +290,9 @@ public class PasswordServices extends Tools{
        return file.renameTo(rename);
     }
 
-    /** UPDATE ID **/
+  
+
     /** GETTER **/
-    private File GetFileFromName(String name) {
-        return new File(fullPath + "/" + name + ".pw");
-    }
     public String[] GetStoredPasswords() throws Exception{
         File directory = new File(fullPath);
         if (!directory.isDirectory() && !directory.mkdir()) {
@@ -327,4 +310,54 @@ public class PasswordServices extends Tools{
     public static String getRoot() {
         return root;
     }
+    private File GetFileFromName(String name) {
+        return new File(fullPath + "/" + name + ".pw");
+    }
+    private IPassword getPasswordByID(int id) throws IOException {
+        return getAllPW().get(id);
+    }
+    private ArrayList<IPassword> getAllPW() throws IOException {
+        File file = new File(this.fullPath);
+        if(!file.exists()){
+            System.out.println(ANSI_RED + "NO PASSWORD" + ANSI_RESET);
+            return null;
+        }
+
+        ArrayList<IPassword> PWList = new ArrayList<>();
+        BufferedReader reader;
+        reader = new BufferedReader(new FileReader(this.fullPath));
+
+        reader.readLine();
+        reader.readLine();
+        reader.readLine();
+
+
+        String line = reader.readLine();
+        String password = "";
+        String name = "";
+        String category = "";
+        Cryptography crypto = null;
+
+
+        while(line != null){
+            password = line.split("#")[1].replaceAll(" ","");
+            line = line.split("#")[0].replaceAll(" ","");
+            crypto = Cryptography.valueOf(line.split(">")[1].replace("|",""));
+            line = line.split(">")[0];
+            name = line.split("<")[1].replace("|","");
+            line = line.split("<")[0];
+            category = line.split("~")[1].replace("|","");
+
+            PWList.add(this.buildPassword(category,name,crypto,password));
+
+
+            // System.out.println(text+password);
+
+            line = reader.readLine();
+        }
+        reader.close();
+
+        return PWList;
+    }
+
 }

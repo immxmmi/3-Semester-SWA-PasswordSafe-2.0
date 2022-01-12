@@ -47,7 +47,6 @@ public class MenuImpl extends Tools implements Menu {
                                 this.masterKey.setMasterPasswordPlain(masterKey);
                                 this.passwordServices = new PasswordServices(this.passwordFileName,this.masterKey);
                                 System.out.println(ANSI_GREEN + "unlocked success" + ANSI_RESET);
-                                System.exit(0);
                             }else{
                                 System.out.println(ANSI_RED + "Master password did not match or don't exist! Failed to unlock." + ANSI_RESET);
                             }
@@ -106,6 +105,7 @@ public class MenuImpl extends Tools implements Menu {
                     locked = true;
                     this.masterKeyServices = new MasterKeyServices(this.masterFileName,this.passwordServices.getFullPath());
                     this.masterKeyServices.setNewMasterKey();
+                    this.masterKey.setPasswords(null);
                     break;
                 }
                 /** INVALID INPUT **/

@@ -1,5 +1,6 @@
 package password.services;
 
+import com.sun.jdi.NativeMethodException;
 import crypto.CipherFacility;
 import crypto.Cryptography;
 import master.MasterKey;
@@ -25,13 +26,15 @@ public class PasswordServices extends Tools{
     private static String root = "./KEY/password/";
     /** VAR **/
     private final CipherFacility cipherFacility;
-    private static String fullPath = "";
+    private static String fullPath = "./KEY/password/password.pw";
+    private MasterKey masterKey;
 
     /** STATIC **/
     static {new File(root).mkdir();}
 
     /** CONSTRUCTOR **/
-    public PasswordServices(String fileName, MasterKey masterKey) {
+    public PasswordServices(String fileName, MasterKey masterKey) throws IOException {
+        this.masterKey = masterKey;
         this.cipherFacility = CipherFacility.builder()
                 .masterKey(masterKey.getMasterPasswordPlain())
                 .cryptography(Cryptography.AES)
@@ -39,58 +42,70 @@ public class PasswordServices extends Tools{
         this.fullPath =this.root + fileName;
     }
 
+
     /** PRINT **/
     public void printPasswordList() throws IOException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
+        this.loadPasswords();
         int maxNr = 1;
         int maxCategory = 18;
         int maxName = 14;
         int maxCrypto = 16;
+        int counter = 0;
+
+
         System.out.println(" __________________________________________________________________________________________________________________________");
         System.out.println("|ID | Category           | Name           | Crypto           | Password                                                    |");
+        if(this.masterKey.getPasswords() == null){
+            System.out.println(ANSI_RED + "NO PASSWORD AVAILABLE" + ANSI_RESET);
+            return;
+        }
 
-        if(getAllPW() != null){
-            for(int i = 0; i < getAllPW().size(); i++){
-                System.out.println("|---|--------------------|----------------|------------------|-------------------------------------------------------------|");
-                System.out.print(ANSI_BLUE+"| "+i+this.checkSpace(""+i,maxNr));
-                System.out.print("| "+getAllPW().get(i).getCategory()+this.checkSpace(getAllPW().get(i).getCategory(),maxCategory));
-                System.out.print("| "+getAllPW().get(i).getName()+this.checkSpace(getAllPW().get(i).getName(),maxName));
-                System.out.print("| "+getAllPW().get(i).getCryptography()+this.checkSpace(""+getAllPW().get(i).getCryptography(),maxCrypto));
-                System.out.print("| "+this.cipherFacility.Decrypt(getAllPW().get(i).getPlain()));
-                System.out.println(ANSI_RESET);
-            }
+        for(IPassword password : this.masterKey.getPasswords()){
+
+            System.out.println("|---|--------------------|----------------|------------------|-------------------------------------------------------------|");
+            System.out.print(ANSI_BLUE+"| "+counter+this.checkSpace(""+counter,maxNr));
+            System.out.print("| "+ password.getCategory()+this.checkSpace(password.getCategory(),maxCategory));
+            System.out.print("| "+ password.getName()+this.checkSpace(password.getName(),maxName));
+            System.out.print("| "+ password.getCryptography()+this.checkSpace(""+ password.getCryptography(),maxCrypto));
+            System.out.print("| "+this.cipherFacility.Decrypt(password.getPlain()));
+            System.out.println(ANSI_RESET);
+
+            counter++;
         }
         System.out.println("|__________________________________________________________________________________________________________________________|");
 
     }
     public void printSinglePassword() throws IOException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
-        int index = getInputID();
-
-        if(getAllPW() == null){
-            return;
-        }
-        if(index < 0 || index > getAllPW().size()){
-            System.out.println(ANSI_RED + "PW - NOT FOUND" + ANSI_RESET);
-            return;
-        }
-
-
         int maxNr = 1;
         int maxCategory = 18;
         int maxName = 14;
         int maxCrypto = 16;
+        int index = getInputID();
+
         System.out.println(" __________________________________________________________________________________________________________________________");
         System.out.println("|ID | Category           | Name           | Crypto           | Password                                                    |");
+        if(this.masterKey.getPasswords() == null){
+            System.out.println(ANSI_RED + "NO PASSWORD AVAILABLE" + ANSI_RESET);
+            return;
+        }
+
+        if(index < 0 || index > this.masterKey.getPasswords().size()-1){
+            System.out.println(ANSI_RED + "NO PASSWORD AVAILABLE" + ANSI_RESET);
+            return;
+        }
+
+        IPassword password = masterKey.getPasswords().get(index);
+
+
 
         System.out.println("|---|--------------------|----------------|------------------|-------------------------------------------------------------|");
         System.out.print(ANSI_BLUE+"| "+index+this.checkSpace(""+index,maxNr));
-        System.out.print("| "+getAllPW().get(index).getCategory()+this.checkSpace(getAllPW().get(index).getCategory(),maxCategory));
-        System.out.print("| "+getAllPW().get(index).getName()+this.checkSpace(getAllPW().get(index).getName(),maxName));
-        System.out.print("| "+getAllPW().get(index).getCryptography()+this.checkSpace(""+getAllPW().get(index).getCryptography(),maxCrypto));
-        System.out.print("| "+this.cipherFacility.Decrypt(getAllPW().get(index).getPlain()));
+        System.out.print("| "+ password.getCategory()+this.checkSpace(password.getCategory(),maxCategory));
+        System.out.print("| "+ password.getName()+this.checkSpace(password.getName(),maxName));
+        System.out.print("| "+ password.getCryptography()+this.checkSpace(""+ password.getCryptography(),maxCrypto));
+        System.out.print("| "+this.cipherFacility.Decrypt(password.getPlain()));
         System.out.println(ANSI_RESET);
         System.out.println("|__________________________________________________________________________________________________________________________|");
-
-
     }
 
     /** INPUT **/
@@ -145,41 +160,105 @@ public class PasswordServices extends Tools{
     /** UPDATE **/ 
     public void updatePassword() throws Exception {
         int index = this.getInputID();
-        this.addNewPassword(this.updatePasswordMenu(index));
+
+        if(this.masterKey.getPasswords() == null){
+            System.out.println(ANSI_RED + "NO PASSWORD AVAILABLE" + ANSI_RESET);
+            return;
+        }
+
+        if(index < 0 || index > this.masterKey.getPasswords().size()-1){
+            System.out.println(ANSI_RED + "NO PASSWORD AVAILABLE" + ANSI_RESET);
+            return;
+        }
+
+
+
+        ArrayList<IPassword> PasswordList =  this.masterKey.getPasswords();
+        IPassword password = this.masterKey.getPasswords().get(index);
+        IPassword newPassword = updatePasswordMenu(password);
+        PasswordList.add(newPassword);
         deletePasswordByID(index);
-
+        this.updatePasswordList();
     }
-    private IPassword updatePasswordMenu(int index) throws IOException {
-        IPassword password = getPasswordByID(index);
-        System.out.println("Change PW");
-        System.out.println("1. Category: " + password.getCategory());
-        System.out.println("2. Name: " + password.getName());
-        System.out.println("3. Password: " + password.getPlain());
-        System.out.println("4. Cryptography: " + password.getCryptography());
-        System.out.println("0. Back ");
+
+
+    private void printUpdateMenu(String category,String name, String pw, Cryptography cryptography){
+        System.out.println("###############################");
+        System.out.println("# - CHANGE PASSWORD - MENU - ##");
+        System.out.println("# 1. Category:     " + category);
+        System.out.println("# 2. Name:         " + name);
+        System.out.println("# 3. Password:     " + pw);
+        System.out.println("# 4. Cryptography: " + cryptography);
+        System.out.println("# 0. Back          ");
+        System.out.println("##############################");
+    }
+
+
+    private IPassword updatePasswordMenu(IPassword password) throws NoSuchPaddingException, UnsupportedEncodingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
+
+        String category = password.getCategory();
+        String name = password.getName();
+        String pw = this.cipherFacility.Decrypt(password.getPlain());
+        Cryptography cryptography = password.getCryptography();
+
+        this.printUpdateMenu(category,name, pw,cryptography);
+
+
+
         Scanner read = new Scanner(System.in);
-
         String line = "";
+        do {
+            line = read.nextLine().replaceAll(" ", "").replaceAll("\n", "");
 
-        do{
-            line = read.nextLine().replaceAll(" ","").replaceAll("\n","");
-
-            if(!line.equals("0")&&!line.equals("1")&&!line.equals("2")&&!line.equals("3")&&!line.equals("4")){
+            if (!line.equals("0") && !line.equals("1") && !line.equals("2") && !line.equals("3") && !line.equals("4")) {
                 System.out.println(ANSI_RED + "Invalid input!" + ANSI_RESET);
             }
 
-        }while(line.equals("0")||line.equals("1")|| line.equals("2")|| line.equals("3")|| line.equals("4"));
+        } while (line.equals("0") || line.equals("1") || line.equals("2") || line.equals("3") || line.equals("4"));
 
-        switch (line){
-            case "0": ;break;
-            case "1": System.out.println("Set new category: "); String input = read.nextLine();password.setCategory(input);break;
-            case "2": System.out.println("Set new name: "); password.setName(read.nextLine());break;
-            case "3": System.out.println("Set new password: "); password.setPlain(read.nextLine());break;
-            case "4": System.out.println("Set new cryptography: "); password.setCryptography(Cryptography.valueOf(read.nextLine()));break;
+
+        switch (line) {
+            case "0":
+                System.out.println("Back");
+                break;
+            case "1":
+                System.out.println("Set new category: ");
+                category = read.nextLine();
+                break;
+            case "2":
+                System.out.println("Set new name: ");
+                name = read.nextLine();
+                break;
+            case "3":
+                System.out.println("Set new password: ");
+                pw = read.nextLine();
+                break;
+            case "4": {
+                System.out.println("Set new cryptography: AES (1) ");
+
+                String cryptInput = "";
+                do {
+                    cryptInput = read.nextLine().replaceAll(" ", "").replaceAll("\n", "");
+                    if (!cryptInput.equals("1")) {
+                        System.out.println(ANSI_RED + "Invalid input!" + ANSI_RESET);
+                    }
+                } while (!cryptInput.equals("1"));
+                switch (cryptInput) {
+                    case "1":
+                        cryptography = Cryptography.AES;
+                    default:
+                        cryptography = Cryptography.AES;
+                }
+            }
+
         }
+            password.setName(name);
+            password.setCryptography(cryptography);
+            password.setCategory(category);
+            password.setPlain(this.cipherFacility.HashText(password.getCryptography(), pw));
+            return password;
 
-        return password;
-    } // TODO: 06.01.2022 EINGABE PROBLEME
+    }
 
     /** ADD  **/
     private void addNewPassword(IPassword newPassword) throws Exception {
@@ -198,7 +277,6 @@ public class PasswordServices extends Tools{
             file.createNewFile();
             this.writeToFile(password,path);
         }
-
         return file;
     }
 
@@ -219,59 +297,20 @@ public class PasswordServices extends Tools{
 
     /** DELETE **/
     public void deletePasswordMenu() throws Exception {
+    loadPasswords();
         System.out.println("DELETE - MENU");
         int index = getInputID();
 
-        if(getAllPW() == null){return;}
+        if(this.masterKey.getPasswords() == null){return;}
 
-        if(index < 0 || index > getAllPW().size()){return;}
+        if(index < 0 || index > this.masterKey.getPasswords().size()-1){return;}
         deletePasswordByID(index);
     }
     private void deletePasswordByID(int index) throws Exception {
-
-        File currentFile = new File("./KEY/password/password.txt");
-        if(!currentFile.exists()){System.out.println(ANSI_RED + "NO PASSWORD" + ANSI_RESET);return;}
-        File rename = new File("./KEY/password/password1.txt");
-
-        currentFile.renameTo(rename);
-        File newFile = new File("./KEY/password/password.txt");
-        newFile.createNewFile();
-
-
-        BufferedReader reader = new BufferedReader(new FileReader(rename));
-        copyFile(reader.readLine(),newFile);
-        copyFile(reader.readLine(),newFile);
-        copyFile(reader.readLine(),newFile);
-
-        String line = reader.readLine();
-        String text = "";
-        while(line != null){
-            text = line;
-            text = text.split("#")[0].replaceAll(" ","");
-            text = text.split(">")[0];
-            text = text.split("<")[0];
-
-            if(!text.contains(""+index)){
-                copyFile(line,newFile);
-            }
-
-            line = reader.readLine();
-        }
-        reader.close();
-
-        if(rename.exists()){
-            System.out.println("rename");
-        }
-
-        if(currentFile.exists()){
-            System.out.println("currentFile");
-        }
-        if(newFile.exists()){
-            System.out.println("newFile");
-        }
-
-       // currentFile.delete();
-
+        ArrayList<IPassword> newPasswordList = this.masterKey.getPasswords();
+        newPasswordList.remove(index);
+        this.masterKey.setPasswords(newPasswordList);
+        updatePasswordList();
     }
 
     /** COPY FILE - DELETE **/
@@ -351,14 +390,11 @@ public class PasswordServices extends Tools{
 
 
     private IPassword getPasswordByID(int id) throws IOException {
-        return getAllPW().get(id);
+        return loadPasswords().get(id);
     }
-    private ArrayList<IPassword> getAllPW() throws IOException {
+    private ArrayList<IPassword> loadPasswords() throws IOException {
         File file = new File(this.fullPath);
-        if(!file.exists()){
-            System.out.println(ANSI_RED + "NO PASSWORD" + ANSI_RESET);
-            return null;
-        }
+        if(!file.exists()){return null;}
 
         ArrayList<IPassword> PWList = new ArrayList<>();
         BufferedReader reader;
@@ -377,16 +413,16 @@ public class PasswordServices extends Tools{
 
 
         while(line != null){
-            password = line.split("#")[1].replaceAll(" ","");
-            line = line.split("#")[0].replaceAll(" ","");
-            crypto = Cryptography.valueOf(line.split(">")[1].replace("|",""));
-            line = line.split(">")[0];
-            name = line.split("<")[1].replace("|","");
-            line = line.split("<")[0];
-            category = line.split("~")[1].replace("|","");
-
-            PWList.add(this.buildPassword(category,name,crypto,password));
-
+            if(line.contains("#") && line.contains(">") && line.contains("<")){
+                password = line.split("#")[1].replaceAll(" ","");
+                line = line.split("#")[0].replaceAll(" ","");
+                crypto = Cryptography.valueOf(line.split(">")[1].replace("|",""));
+                line = line.split(">")[0];
+                name = line.split("<")[1].replace("|","");
+                line = line.split("<")[0];
+                category = line.split("~")[1].replace("|","");
+                PWList.add(this.buildPassword(category,name,crypto,password));
+            }
 
             // System.out.println(text+password);
 
@@ -394,7 +430,25 @@ public class PasswordServices extends Tools{
         }
         reader.close();
 
+        this.masterKey.setPasswords(PWList);
         return PWList;
+    }
+    public void updatePasswordList() throws IOException {
+        File oldFile = new File(this.getFullPath());
+        if(oldFile.exists()){
+            oldFile.delete();
+        }
+        if(masterKey.getPasswords()==null){
+            return;
+        }
+
+        File newFile = new File("./KEY/password/password.pw");
+        int count = 0;
+        for(IPassword password : this.masterKey.getPasswords()){
+            addNewPasswordToFile(convertPasswordToString(password,count),newFile.getPath());
+            count ++;
+        }
+        this.loadPasswords();
     }
 
 }

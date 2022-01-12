@@ -1,6 +1,7 @@
 package master.services;
 import master.MasterKey;
 import master.MasterKeyImpl;
+import password.services.PasswordServices;
 import tools.Tools;
 import java.io.File;
 import java.io.FileReader;
@@ -12,7 +13,7 @@ public class MasterKeyServices extends Tools{ // TODO: 11.01.2022 Fertig
 
     /** ROOT **/
     public static String root = "./KEY/master/";
-    public static String passwordPath = "";
+    public static String passwordPath = "./KEY/password/password.pw";
     private static MasterKey masterKey = null;
     private static String fileName;
 
@@ -48,13 +49,19 @@ public class MasterKeyServices extends Tools{ // TODO: 11.01.2022 Fertig
     public void setNewMasterKey() throws Exception {
         Scanner read = new Scanner(System.in);
         System.out.println(ANSI_PURPLE +"Enter new master password !"+ ANSI_RED +" (Warning you will loose all already stored passwords)" + ANSI_RESET);
+        // Liest neues masterPW ein
         String masterPw = read.next();
+        // HASHED das neue masterPW
         String hashPw = hashMasterKey(masterPw);
+        // Speichert das neue masterPW im File
         this.StoreMasterPasswordToFile(hashPw);
-        this.destroyPasswords();
+        // Löscht alle alten PW
+        this.destroyPasswordFile();
+        // setzt das neue PW --> in MasterKEY
         this.masterKey.setMasterPasswordPlain(hashPw);
+        // LEERT DIE PW - LISTE
+        this.masterKey.setPasswords(null);
         System.out.println(ANSI_GREEN + "Success" + ANSI_RESET);
-
     }
 
     /** HASH STRING **/
@@ -82,16 +89,12 @@ public class MasterKeyServices extends Tools{ // TODO: 11.01.2022 Fertig
 
     /** CHECK **/
     public boolean checkMasterKey(String masterPassword) throws Exception{
-        if(new File(this.masterKey.getMasterPasswordPath()).exists() == false){
-            System.out.println(ANSI_RED + "NO MASTER KEY" + ANSI_RESET);
-            return false;
-        }
-        return readMasterPasswordFromFile().equals(hashString(masterPassword));
+        if(new File(this.masterKey.getMasterPasswordPath()).exists() == false){return false;}
+        return this.readMasterPasswordFromFile().equals(hashString(masterPassword));
     }
 
     /** SAVE PW **/
     private void StoreMasterPasswordToFile(String masterPassword) throws Exception{
-
         FileWriter writer = null;
         try {
             // PATH
@@ -100,18 +103,15 @@ public class MasterKeyServices extends Tools{ // TODO: 11.01.2022 Fertig
             writer.write(masterPassword);
         } finally {
             if(writer != null) try {
-                writer.close();
+                writer.flush();
             }catch (IOException e){
                 e.printStackTrace();
             }
         }
-
-
-
     }
 
     /** DELETE ALL PW **/
-    private void destroyPasswords() throws IOException {
+    private void destroyPasswordFile() {
       File file = new File(this.passwordPath);
       if(file.exists()){
           file.delete();

@@ -1,21 +1,17 @@
 package master;
 
 import crypto.Cryptography;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
 
+public interface MasterKey {
+    String getMasterPasswordPath();
 
-@Builder (toBuilder = true)
-public class MasterKey implements IMasterKey{
+    String getMasterPasswordPlain();
 
-    /** Master VAR **/
-    @Getter @Setter @Builder.Default
-    private String masterPasswordPath = "/master.pw";
-    @Getter @Setter
-    private String masterPasswordPlain;
-    @Getter @Setter @Builder.Default
-    private Cryptography cryptography = Cryptography.SHA256;
+    Cryptography getCryptography();
 
+    void setMasterPasswordPath(String masterPasswordPath);
 
+    void setMasterPasswordPlain(String masterPasswordPlain);
+
+    void setCryptography(Cryptography cryptography);
 }

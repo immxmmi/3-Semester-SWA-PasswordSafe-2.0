@@ -1,6 +1,6 @@
 package master.services;
-import master.IMasterKey;
 import master.MasterKey;
+import master.MasterKeyImpl;
 import tools.Tools;
 import java.io.File;
 import java.io.FileReader;
@@ -8,12 +8,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Scanner;
 
-public class MasterKeyServices extends Tools{
+public class MasterKeyServices extends Tools{ // TODO: 11.01.2022 Fertig
 
     /** ROOT **/
     public static String root = "./KEY/master/";
     public static String passwordPath = "";
-    private static IMasterKey masterKey = null;
+    private static MasterKey masterKey = null;
     private static String fileName;
 
     /** STATIC **/
@@ -25,7 +25,7 @@ public class MasterKeyServices extends Tools{
     public MasterKeyServices(String masterPasswordPath,String passwordPath){
         this.fileName = masterPasswordPath;
         this.passwordPath = passwordPath;
-        this.masterKey = MasterKey.builder()
+        this.masterKey = MasterKeyImpl.builder()
                 .masterPasswordPath(this.root+masterPasswordPath)
                 .build();
     }
@@ -47,12 +47,11 @@ public class MasterKeyServices extends Tools{
     /** SETTER **/
     public void setNewMasterKey() throws Exception {
         Scanner read = new Scanner(System.in);
-        System.out.println("Enter new master password ! (Warning you will loose all already stored passwords)");
+        System.out.println(ANSI_PURPLE +"Enter new master password !"+ ANSI_RED +" (Warning you will loose all already stored passwords)" + ANSI_RESET);
         String masterPw = read.next();
         String hashPw = hashMasterKey(masterPw);
         this.StoreMasterPasswordToFile(hashPw);
-
-
+        this.destroyPasswords();
         this.masterKey.setMasterPasswordPlain(hashPw);
         System.out.println(ANSI_GREEN + "Success" + ANSI_RESET);
 
@@ -112,10 +111,10 @@ public class MasterKeyServices extends Tools{
     }
 
     /** DELETE ALL PW **/
-    private void destroyPasswords(){
+    private void destroyPasswords() throws IOException {
       File file = new File(this.passwordPath);
       if(file.exists()){
-        file.delete();
+          file.delete();
       }
     }
 }

@@ -1,7 +1,9 @@
-import menu.IMenu;
 import menu.Menu;
+import menu.MenuImpl;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.util.jar.JarOutputStream;
 
 public class Main {
 
@@ -13,12 +15,11 @@ public class Main {
 
     public static void main(String [] args) throws Exception {
 
-       // File file = new File("./KEY/password/password.txt");
-       // File file1 = new File()
-        System.out.println("Welcome to Passwordsafe");
-        IMenu menu = new Menu();
+       System.out.println("Welcome to Passwordsafe");
+        Menu menu = new MenuImpl();
         menu.startMenu();
         System.out.println("Good by !");
+
     }
 
 }

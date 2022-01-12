@@ -1,11 +1,11 @@
 package password.services;
 
-import com.sun.jdi.NativeMethodException;
-import crypto.CipherFacility;
+import crypto.CipherFacilityImpl;
 import crypto.Cryptography;
 import master.MasterKey;
 import password.IPassword;
 import password.Password;
+import tools.TextColor;
 import tools.Tools;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -14,29 +14,30 @@ import java.io.*;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Scanner;
-import java.util.stream.Collectors;
 
 
-public class PasswordServicesImpl extends Tools{
+public class PasswordServicesImpl extends Tools implements PasswordServices{
 
     /** ROOT **/
     private static String root = "./KEY/password/";
     /** VAR **/
-    private final CipherFacility cipherFacility;
     private static String fullPath = "./KEY/password/password.pw";
+
+    /** INSTANCE **/
+    private final CipherFacilityImpl cipherFacilityImpl;
     private MasterKey masterKey;
+    private TextColor textColor;
 
     /** STATIC **/
     static {new File(root).mkdir();}
 
     /** CONSTRUCTOR **/
-    public PasswordServicesImpl(String fileName, MasterKey masterKey) throws IOException {
+    public PasswordServicesImpl(String fileName, MasterKey masterKey) {
+        this.textColor = new TextColor();
         this.masterKey = masterKey;
-        this.cipherFacility = CipherFacility.builder()
-                .masterKey(masterKey.getMasterPasswordPlain())
+        this.cipherFacilityImpl = CipherFacilityImpl.builder()
+                .key(masterKey.getMasterPasswordPlain())
                 .cryptography(Cryptography.AES)
                 .build();
         this.fullPath =this.root + fileName;
@@ -44,6 +45,7 @@ public class PasswordServicesImpl extends Tools{
 
     /** PRINT **/
     public void printPasswordList() throws IOException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
+       loadPasswords();
         int maxNr = 1;
         int maxCategory = 18;
         int maxName = 14;
@@ -54,19 +56,19 @@ public class PasswordServicesImpl extends Tools{
         System.out.println(" __________________________________________________________________________________________________________________________");
         System.out.println("|ID | Category           | Name           | Crypto           | Password                                                    |");
         if(this.masterKey.getPasswords() == null){
-            System.out.println(ANSI_RED + "NO PASSWORD AVAILABLE" + ANSI_RESET);
+            System.out.println(textColor.ANSI_RED + "NO PASSWORD AVAILABLE" + textColor.ANSI_RESET);
             return;
         }
 
         for(IPassword password : this.masterKey.getPasswords()){
 
             System.out.println("|---|--------------------|----------------|------------------|-------------------------------------------------------------|");
-            System.out.print(ANSI_BLUE+"| "+counter+this.checkSpace(""+counter,maxNr));
+            System.out.print(textColor.ANSI_BLUE+"| "+counter+this.checkSpace(""+counter,maxNr));
             System.out.print("| "+ password.getCategory()+this.checkSpace(password.getCategory(),maxCategory));
             System.out.print("| "+ password.getName()+this.checkSpace(password.getName(),maxName));
             System.out.print("| "+ password.getCryptography()+this.checkSpace(""+ password.getCryptography(),maxCrypto));
-            System.out.print("| "+this.cipherFacility.Decrypt(password.getPlain()));
-            System.out.println(ANSI_RESET);
+            System.out.print("| "+this.cipherFacilityImpl.Decrypt(password.getPlain()));
+            System.out.println(textColor.ANSI_RESET);
 
             counter++;
         }
@@ -79,7 +81,7 @@ public class PasswordServicesImpl extends Tools{
         int maxName = 14;
         int maxCrypto = 16;
         if(this.masterKey.getPasswords() == null){
-            System.out.println(ANSI_RED + "NO PASSWORD AVAILABLE" + ANSI_RESET);
+            System.out.println(textColor.ANSI_RED + "NO PASSWORD AVAILABLE" +textColor.ANSI_RESET);
             return;
         }
         int index = this.getInputID(this.masterKey.getPasswords().size()-1);
@@ -89,12 +91,12 @@ public class PasswordServicesImpl extends Tools{
         IPassword password = masterKey.getPasswords().get(index);
 
         System.out.println("|---|--------------------|----------------|------------------|-------------------------------------------------------------|");
-        System.out.print(ANSI_BLUE+"| "+index+this.checkSpace(""+index,maxNr));
+        System.out.print(textColor.ANSI_BLUE+"| "+index+this.checkSpace(""+index,maxNr));
         System.out.print("| "+ password.getCategory()+this.checkSpace(password.getCategory(),maxCategory));
         System.out.print("| "+ password.getName()+this.checkSpace(password.getName(),maxName));
         System.out.print("| "+ password.getCryptography()+this.checkSpace(""+ password.getCryptography(),maxCrypto));
-        System.out.print("| "+this.cipherFacility.Decrypt(password.getPlain()));
-        System.out.println(ANSI_RESET);
+        System.out.print("| "+this.cipherFacilityImpl.Decrypt(password.getPlain()));
+        System.out.println(textColor.ANSI_RESET);
         System.out.println("|__________________________________________________________________________________________________________________________|");
     }
     private void printUpdateMenu(String category,String name, String pw, Cryptography cryptography){
@@ -142,7 +144,7 @@ public class PasswordServicesImpl extends Tools{
         do{
             cryptInput = read.nextLine().replaceAll(" ","").replaceAll("\n","");
             if(!cryptInput.equals("1")){
-                System.out.println(ANSI_RED + "Invalid input!" + ANSI_RESET);
+                System.out.println(textColor.ANSI_RED + "Invalid input!" + textColor.ANSI_RESET);
             }
         }while(!cryptInput.equals("1"));
         Cryptography crypt = null;
@@ -151,7 +153,7 @@ public class PasswordServicesImpl extends Tools{
             default: crypt = Cryptography.AES;
         }
 
-        this.addNewPassword(buildPassword(category,name,crypt,this.cipherFacility.HashText(crypt,password)));
+        this.addNewPassword(buildPassword(category,name,crypt,this.cipherFacilityImpl.HashText(crypt,password)));
     }
     /** BUILD **/
     private IPassword buildPassword(String category, String name, Cryptography cryptography, String password){
@@ -166,7 +168,7 @@ public class PasswordServicesImpl extends Tools{
     /** UPDATE **/ 
     public void updatePassword() throws Exception {
         if(this.masterKey.getPasswords() == null){
-            System.out.println(ANSI_RED + "NO PASSWORD AVAILABLE" + ANSI_RESET);
+            System.out.println(textColor.ANSI_RED + "NO PASSWORD AVAILABLE" + textColor.ANSI_RESET);
             return;
         }
         int index = this.getInputID(this.masterKey.getPasswords().size()-1);
@@ -183,7 +185,7 @@ public class PasswordServicesImpl extends Tools{
 
         String category = password.getCategory();
         String name = password.getName();
-        String pw = this.cipherFacility.Decrypt(password.getPlain());
+        String pw = this.cipherFacilityImpl.Decrypt(password.getPlain());
         Cryptography cryptography = password.getCryptography();
 
         this.printUpdateMenu(category,name, pw,cryptography);
@@ -196,7 +198,7 @@ public class PasswordServicesImpl extends Tools{
             line = read.nextLine().replaceAll(" ", "").replaceAll("\n", "");
 
             if (!line.equals("0") && !line.equals("1") && !line.equals("2") && !line.equals("3") && !line.equals("4")) {
-                System.out.println(ANSI_RED + "Invalid input!" + ANSI_RESET);
+                System.out.println(textColor.ANSI_RED + "Invalid input!" + textColor.ANSI_RESET);
             }
 
         } while (line.equals("0") || line.equals("1") || line.equals("2") || line.equals("3") || line.equals("4"));
@@ -225,7 +227,7 @@ public class PasswordServicesImpl extends Tools{
                 do {
                     cryptInput = read.nextLine().replaceAll(" ", "").replaceAll("\n", "");
                     if (!cryptInput.equals("1")) {
-                        System.out.println(ANSI_RED + "Invalid input!" + ANSI_RESET);
+                        System.out.println(textColor.ANSI_RED + "Invalid input!" + textColor.ANSI_RESET);
                     }
                 } while (!cryptInput.equals("1"));
                 switch (cryptInput) {
@@ -241,7 +243,7 @@ public class PasswordServicesImpl extends Tools{
             password.setName(name);
             password.setCryptography(cryptography);
             password.setCategory(category);
-            password.setPlain(this.cipherFacility.HashText(password.getCryptography(), pw));
+            password.setPlain(this.cipherFacilityImpl.HashText(password.getCryptography(), pw));
             return password;
 
     }
@@ -286,7 +288,7 @@ public class PasswordServicesImpl extends Tools{
     loadPasswords();
         System.out.println("DELETE - MENU");
         if(this.masterKey.getPasswords() == null){
-            System.out.println(ANSI_RED + "NO PASSWORD AVAILABLE" + ANSI_RESET);
+            System.out.println(textColor.ANSI_RED + "NO PASSWORD AVAILABLE" + textColor.ANSI_RESET);
             return;
         }
         int index = this.getInputID(this.masterKey.getPasswords().size()-1);
@@ -320,6 +322,15 @@ public class PasswordServicesImpl extends Tools{
         }
         return  0;
     }
+
+
+
+
+
+
+
+
+
 
     /** WRITE FILE **/
     private void writeToFile(String text,String path) {
@@ -370,8 +381,6 @@ public class PasswordServicesImpl extends Tools{
                 category = line.split("~")[1].replace("|","");
                 PWList.add(this.buildPassword(category,name,crypto,password));
             }
-
-            // System.out.println(text+password);
 
             line = reader.readLine();
         }

@@ -9,6 +9,5 @@ import java.security.NoSuchAlgorithmException;
 
 public interface CipherFacility {
     String Decrypt(String decrypted) throws NoSuchPaddingException, NoSuchAlgorithmException, UnsupportedEncodingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException;
-
     String HashText(Cryptography cryptography, String plain) throws UnsupportedEncodingException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException;
 }

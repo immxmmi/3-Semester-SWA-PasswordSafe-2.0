@@ -1,7 +1,7 @@
 package master;
 
 import crypto.Cryptography;
-import password.IPassword;
+import password.Password;
 
 import java.util.ArrayList;
 
@@ -12,9 +12,9 @@ public interface MasterKey {
 
     Cryptography getCryptography();
 
-    public ArrayList<IPassword> getPasswords();
+    public ArrayList<Password> getPasswords();
 
-    public void setPasswords(ArrayList<IPassword> passwords);
+    public void setPasswords(ArrayList<Password> passwords);
 
     void setMasterPasswordPath(String masterPasswordPath);
 

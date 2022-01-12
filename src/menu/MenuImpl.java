@@ -1,49 +1,64 @@
 package menu;
 
+import config.ConfigImpl;
+import config.Config;
 import master.MasterKey;
-import master.MasterKeyImpl;
+import modle.MasterKeyImpl;
 import master.services.MasterKeyServices;
 import master.services.MasterKeyServicesImpl;
+import password.services.PasswordServices;
 import password.services.PasswordServicesImpl;
 import tools.TextColor;
 import tools.Tools;
 
+import java.io.IOException;
 import java.util.Scanner;
 
 public class MenuImpl extends Tools implements Menu {
 
+    /** config **/
+
+    private static Config config;
+
+    static {
+        try {
+            config = new ConfigImpl(true);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     /** VAR **/
-    private static String passwordFileName = "password.pw";
-    private static String masterFileName = "master.pw";
+    private static String passwordFileName = config.getPasswordFileName();
+    private static String masterFileName = config.getMasterFileName();
 
     /** INSTANCE **/
-    private static PasswordServicesImpl passwordServicesImpl;
-    private static MasterKeyServices masterKeyServices = new MasterKeyServicesImpl(masterFileName, passwordServicesImpl.getFullPath());
+    private static PasswordServices passwordServices = new PasswordServicesImpl();
+    private static MasterKeyServices masterKeyServices = new MasterKeyServicesImpl(masterFileName, passwordServices.getFullPath());
     private static MasterKey masterKey = MasterKeyImpl.builder().build();
     private static TextColor textColor = new TextColor();
 
-
-
+    public MenuImpl() {
+    }
 
 
     /** PRINTER **/
     private void printMenu(){
-        System.out.println(textColor.ANSI_BLUE + "Enter master (1), show all (2), show single (3), add (4), delete(5), update(6), set new master (7), Abort (0)" + textColor.ANSI_RESET);
+        System.out.println(textColor.BLUE + "Enter master (1), show all (2), show single (3), add (4), delete(5), update(6), set new master (7), Abort (0)" + textColor.RESET);
     }
 
     private boolean login() throws Exception {
         Scanner read = new Scanner(System.in);
-        System.out.println(textColor.ANSI_PURPLE + "Enter master password" + textColor.ANSI_RESET);
+        System.out.println(textColor.PURPLE + "Enter master password" + textColor.RESET);
         String masterKey = read.next().replaceAll("\n","");
         boolean locked = !masterKeyServices.checkMasterKey(masterKey);
         if(!locked){
             this.masterKey.setMasterPasswordPlain(masterKey);
-            this.passwordServicesImpl = new PasswordServicesImpl(this.passwordFileName,this.masterKey);
-            this.passwordServicesImpl.loadPasswords();
-            System.out.println(textColor.ANSI_GREEN + "unlocked success" + textColor.ANSI_RESET);
+            this.passwordServices = new PasswordServicesImpl(this.passwordFileName,this.masterKey);
+            this.passwordServices.reloadData();
+            System.out.println(textColor.GREEN + "unlocked success" + textColor.RESET);
         }else{
-            System.out.println(textColor.ANSI_RED + "Master password did not match or don't exist! Failed to unlock." + textColor.ANSI_RESET);
+            System.out.println(textColor.RED + "Master password did not match or don't exist! Failed to unlock." + textColor.RESET);
         }
         return locked;
     }
@@ -65,60 +80,60 @@ public class MenuImpl extends Tools implements Menu {
                 /** PRINT PW-LIST **/
                 case 2: {
                     if (locked) {
-                        System.out.println(textColor.ANSI_RED + "Please unlock first by entering the master password." + textColor.ANSI_RESET);
+                        System.out.println(textColor.RED + "Please unlock first by entering the master password." + textColor.RESET);
                     } else {
-                        passwordServicesImpl.printPasswordList();
-                        //passwordServices.printPasswordList();
+                        this.masterKey = passwordServices.reloadData();
+                        passwordServices.printPasswordList(this.masterKey.getPasswords());
                     }break;
                 }
                 /** PRINT PW **/
                 case 3: {
                     if (locked) {
-                        System.out.println(textColor.ANSI_RED + "Please unlock first by entering the master password." + textColor.ANSI_RESET);
+                        System.out.println(textColor.RED + "Please unlock first by entering the master password." + textColor.RESET);
                     } else {
-                        passwordServicesImpl.printSinglePassword();
+                         passwordServices.printSinglePassword();
                     }
                     break;
                 }
                 /**  CREATE NEW PW **/
                 case 4: {
                     if (locked) {
-                        System.out.println(textColor.ANSI_RED + "Please unlock first by entering the master password." + textColor.ANSI_RESET);
+                        System.out.println(textColor.RED + "Please unlock first by entering the master password." + textColor.RESET);
                     } else {
                         PasswordServicesImpl passwordServicesImpl = new PasswordServicesImpl(passwordFileName,masterKey);
-                        passwordServicesImpl.createNewPasswordMenu();
+                        passwordServicesImpl.addNewPasswordMenu();
                     }
                     break;
                 }
                 /** DELETE PW **/
                 case 5: {
                     if (locked) {
-                        System.out.println(textColor.ANSI_RED + "Please unlock first by entering the master password." + textColor.ANSI_RESET);
+                        System.out.println(textColor.RED + "Please unlock first by entering the master password." + textColor.RESET);
                     } else {
                         System.out.println("Enter password name");
-                        this.passwordServicesImpl.deletePasswordMenu();
+                        this.passwordServices.deletePasswordMenu();
                     }
                     break;
                 }
                 /** UPDATE PW **/
                 case 6: {
                     if (locked) {
-                        System.out.println(textColor.ANSI_RED + "Please unlock first by entering the master password." + textColor.ANSI_RESET);
+                        System.out.println(textColor.RED + "Please unlock first by entering the master password." + textColor.RESET);
                     } else {
-                        this.passwordServicesImpl.updatePassword();
+                        this.passwordServices.updatePasswordMenu();
                     }
                     break;
                 }
                 /** CREATE SET NEW MASTER KEY**/
                 case 7:{
                     locked = true;
-                    this.masterKeyServices = new MasterKeyServicesImpl(this.masterFileName,this.passwordServicesImpl.getFullPath());
+                    this.masterKeyServices = new MasterKeyServicesImpl(this.masterFileName, passwordServices.getFullPath());
                     this.masterKeyServices.setNewMasterKey();
                     this.masterKey.setPasswords(null);
                     break;
                 }
                 /** INVALID INPUT **/
-                default: System.out.println(textColor.ANSI_RED + "Invalid input" + textColor.ANSI_RESET);
+                default: System.out.println(textColor.RED + "Invalid input" + textColor.RESET);
             }
         }
     }

@@ -1,10 +1,11 @@
-package master;
+package modle;
 
 import crypto.Cryptography;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
-import password.IPassword;
+import master.MasterKey;
+import password.Password;
 
 import java.util.ArrayList;
 
@@ -18,7 +19,7 @@ public class MasterKeyImpl implements MasterKey {
     @Getter @Setter
     private String masterPasswordPlain;
     @Getter @Setter @Builder.Default
-    private ArrayList<IPassword> passwords = null;
+    private ArrayList<Password> passwords = null;
     @Getter @Setter @Builder.Default
     private Cryptography cryptography = Cryptography.SHA256;
 

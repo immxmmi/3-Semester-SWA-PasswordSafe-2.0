@@ -1,27 +1,43 @@
 package master.services;
 
+import config.ConfigImpl;
+import config.Config;
 import crypto.CipherFacility;
 import crypto.CipherFacilityImpl;
-import handler.Handler;
-import handler.IHandler;
+import service.FileHandlerImpl;
+import service.FileHandler;
 import master.MasterKey;
-import master.MasterKeyImpl;
+import modle.MasterKeyImpl;
 import tools.TextColor;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Scanner;
 
 public class MasterKeyServicesImpl implements MasterKeyServices { // TODO: 11.01.2022 Fertig
 
+
+    /** CONFIG **/
+    private static Config config;
+
+    static {
+        try {
+            config = new ConfigImpl(true);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
     /** ROOT **/
-    public static String root = "./KEY/master/";
-    public static String passwordPath = "./KEY/password/password.pw";
+    public static String root = config.getRoot() + config.getMasterFolder();
+    public static String passwordPath = config.getRoot() + config.getPasswordFolder() + config.getPasswordFileName();
     private static MasterKey masterKey = null;
-    private static String fileName;
+    private String fileName;
 
     /** INSTANCE **/
     private CipherFacility cipherFacility = CipherFacilityImpl.builder().build();
-    private IHandler handler = new Handler();
+    private FileHandler handler = new FileHandlerImpl();
     private TextColor textColor = new TextColor();
 
     /** STATIC **/
@@ -46,7 +62,7 @@ public class MasterKeyServicesImpl implements MasterKeyServices { // TODO: 11.01
     @Override
     public void setNewMasterKey() throws Exception {
         Scanner read = new Scanner(System.in);
-        System.out.println(textColor.ANSI_PURPLE +"Enter new master password !"+ textColor.ANSI_RED +" (Warning you will loose all already stored passwords)" + textColor.ANSI_RESET);
+        System.out.println(textColor.PURPLE +"Enter new master password !"+ textColor.RED +" (Warning you will loose all already stored passwords)" + textColor.RESET);
         // Liest neues masterPW ein
         String masterPw = read.next();
         // HASHED das neue masterPW
@@ -59,7 +75,7 @@ public class MasterKeyServicesImpl implements MasterKeyServices { // TODO: 11.01
         this.masterKey.setMasterPasswordPlain(hashPw);
         // LEERT DIE PW - LISTE
         this.masterKey.setPasswords(null);
-        System.out.println(textColor.ANSI_GREEN + "Success" + textColor.ANSI_RESET);
+        System.out.println(textColor.GREEN + "Success" + textColor.RESET);
     }
 
     /** CHECK **/

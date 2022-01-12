@@ -1,10 +1,14 @@
 package password.services;
 
+import config.ConfigImpl;
+import config.Config;
 import crypto.CipherFacilityImpl;
 import crypto.Cryptography;
+import service.FileHandlerImpl;
+import service.FileHandler;
 import master.MasterKey;
-import password.IPassword;
 import password.Password;
+import modle.PasswordImpl;
 import tools.TextColor;
 import tools.Tools;
 import javax.crypto.BadPaddingException;
@@ -17,15 +21,27 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 
-public class PasswordServicesImpl extends Tools implements PasswordServices{
+public class PasswordServicesImpl extends Tools implements PasswordServices {
+
+    /** CONFIG **/
+    private static Config config;
+
+    static {
+        try {
+            config = new ConfigImpl(true);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     /** ROOT **/
-    private static String root = "./KEY/password/";
+    private static String root = config.getRoot() + config.getPasswordFolder();
     /** VAR **/
-    private static String fullPath = "./KEY/password/password.pw";
+    public static String fullPath = root + config.getPasswordFileName();
 
     /** INSTANCE **/
-    private final CipherFacilityImpl cipherFacilityImpl;
+    private CipherFacilityImpl cipherFacilityImpl;
+    private FileHandler handler = new FileHandlerImpl();
     private MasterKey masterKey;
     private TextColor textColor;
 
@@ -33,6 +49,7 @@ public class PasswordServicesImpl extends Tools implements PasswordServices{
     static {new File(root).mkdir();}
 
     /** CONSTRUCTOR **/
+    public  PasswordServicesImpl(){};
     public PasswordServicesImpl(String fileName, MasterKey masterKey) {
         this.textColor = new TextColor();
         this.masterKey = masterKey;
@@ -43,61 +60,110 @@ public class PasswordServicesImpl extends Tools implements PasswordServices{
         this.fullPath =this.root + fileName;
     }
 
+    /** GETTER **/
+    public String getFullPath() {
+        return fullPath;
+    }
+    private Password getPasswordByID(int id) throws IOException {
+        return loadPasswordList().get(id);
+    }
+
     /** PRINT **/
-    public void printPasswordList() throws IOException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
-       loadPasswords();
-        int maxNr = 1;
-        int maxCategory = 18;
-        int maxName = 14;
-        int maxCrypto = 16;
+    @Override
+    public void printPasswordList(ArrayList<Password> passwords) throws IOException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
         int counter = 0;
-
-
         System.out.println(" __________________________________________________________________________________________________________________________");
         System.out.println("|ID | Category           | Name           | Crypto           | Password                                                    |");
-        if(this.masterKey.getPasswords() == null){
-            System.out.println(textColor.ANSI_RED + "NO PASSWORD AVAILABLE" + textColor.ANSI_RESET);
+        if(passwords == null){
+            System.out.println(textColor.RED + "NO PASSWORDS AVAILABLE" + textColor.RESET);
             return;
         }
 
-        for(IPassword password : this.masterKey.getPasswords()){
-
-            System.out.println("|---|--------------------|----------------|------------------|-------------------------------------------------------------|");
-            System.out.print(textColor.ANSI_BLUE+"| "+counter+this.checkSpace(""+counter,maxNr));
-            System.out.print("| "+ password.getCategory()+this.checkSpace(password.getCategory(),maxCategory));
-            System.out.print("| "+ password.getName()+this.checkSpace(password.getName(),maxName));
-            System.out.print("| "+ password.getCryptography()+this.checkSpace(""+ password.getCryptography(),maxCrypto));
-            System.out.print("| "+this.cipherFacilityImpl.Decrypt(password.getPlain()));
-            System.out.println(textColor.ANSI_RESET);
-
+        for(Password password : passwords){
+            this.printPassword(counter,password);
             counter++;
         }
         System.out.println("|__________________________________________________________________________________________________________________________|");
-
     }
+    @Override
     public void printSinglePassword() throws IOException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
+
+        if(this.masterKey.getPasswords() == null){
+            System.out.println(textColor.RED + "NO PASSWORDS AVAILABLE" +textColor.RESET);
+            return;
+        }
+
+        int index = this.getInputID(this.masterKey.getPasswords().size()-1,"PW - ID ?","PASSWORD NOT AVAILABLE - TRY AGAIN");
+
+        System.out.println(" __________________________________________________________________________________________________________________________");
+        System.out.println("|ID | Category           | Name           | Crypto           | Password                                                    |");
+
+        Password password = getPasswordByID(index);
+
+       if(password == null){
+            System.out.println(textColor.RED + "PASSWORD NOT AVAILABLE" + textColor.RESET);
+        }else{
+            this.printPassword(index,password);
+        }
+        System.out.println("|__________________________________________________________________________________________________________________________|");
+}
+    private void printPassword(int index, Password password) throws IOException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
         int maxNr = 1;
         int maxCategory = 18;
         int maxName = 14;
         int maxCrypto = 16;
-        if(this.masterKey.getPasswords() == null){
-            System.out.println(textColor.ANSI_RED + "NO PASSWORD AVAILABLE" +textColor.ANSI_RESET);
-            return;
-        }
-        int index = this.getInputID(this.masterKey.getPasswords().size()-1);
-
-        System.out.println(" __________________________________________________________________________________________________________________________");
-        System.out.println("|ID | Category           | Name           | Crypto           | Password                                                    |");
-        IPassword password = masterKey.getPasswords().get(index);
 
         System.out.println("|---|--------------------|----------------|------------------|-------------------------------------------------------------|");
-        System.out.print(textColor.ANSI_BLUE+"| "+index+this.checkSpace(""+index,maxNr));
+        System.out.print(textColor.BLUE +"| "+index+this.checkSpace(""+index,maxNr));
         System.out.print("| "+ password.getCategory()+this.checkSpace(password.getCategory(),maxCategory));
         System.out.print("| "+ password.getName()+this.checkSpace(password.getName(),maxName));
         System.out.print("| "+ password.getCryptography()+this.checkSpace(""+ password.getCryptography(),maxCrypto));
         System.out.print("| "+this.cipherFacilityImpl.Decrypt(password.getPlain()));
-        System.out.println(textColor.ANSI_RESET);
-        System.out.println("|__________________________________________________________________________________________________________________________|");
+        System.out.println(textColor.RESET);
+    }
+
+    /** INPUT **/
+    private int getInputID(int max, String quest, String errorMsg){
+            Scanner read = new Scanner(System.in);
+            int input = 0;
+        do{
+            if(input < 0 || input > max){
+                System.out.println(textColor.RED + errorMsg + textColor.RESET);
+            }
+            System.out.println(quest);
+            input = Integer.parseInt(String.valueOf(read.nextInt()));
+
+        }while(input < 0 || input > max);
+
+
+        return input;
+    }
+
+    /** BUILD **/
+    private Password buildPassword(String category, String name, Cryptography cryptography, String password){
+        return PasswordImpl.builder()
+                .name(name)
+                .Category(category)
+                .cryptography(cryptography)
+                .plain(password)
+                .build();
+    }
+
+    /** UPDATE **/ 
+    @Override
+    public void updatePasswordMenu() throws Exception {
+        if(this.masterKey.getPasswords() == null){
+            System.out.println(textColor.RED + "NO PASSWORD AVAILABLE" + textColor.RESET);
+            return;
+        }
+        int index = this.getInputID(this.masterKey.getPasswords().size()-1,"PW - ID ?","PASSWORD NOT AVAILABLE - TRY AGAIN");
+
+        ArrayList<Password> PasswordList =  this.masterKey.getPasswords();
+        Password password = this.masterKey.getPasswords().get(index);
+        Password newPassword = updatePassword(password);
+        PasswordList.add(newPassword);
+        deletePasswordByID(index);
+        this.updatePasswordList();
     }
     private void printUpdateMenu(String category,String name, String pw, Cryptography cryptography){
         System.out.println("###############################");
@@ -109,26 +175,50 @@ public class PasswordServicesImpl extends Tools implements PasswordServices{
         System.out.println("# 0. Back          ");
         System.out.println("##############################");
     }
+    private Password updatePassword(Password password) throws NoSuchPaddingException, UnsupportedEncodingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
 
-    /** INPUT **/
-    private int getInputID(int max){
-            Scanner read = new Scanner(System.in);
-            int input = 0;
-        do{
-            System.out.println("PW - ID ?");
-            input = Integer.parseInt(String.valueOf(read.nextInt()));
+        String category = password.getCategory();
+        String name = password.getName();
+        String pw = this.cipherFacilityImpl.Decrypt(password.getPlain());
+        Cryptography cryptography = password.getCryptography();
 
-        }while(input < 0 || input > max);
+        String cryptInput = "";
+        this.printUpdateMenu(category,name, pw,cryptography);
 
+        int input = getInputID(5,"SELECT:","ERROR - TRY AGAIN");
 
-        return input;
+        Scanner read = new Scanner(System.in);
+
+        switch (input) {
+            case 1: System.out.println("Set new category: ");category = read.nextLine();break;
+            case 2: System.out.println("Set new name: ");name = read.nextLine();break;
+            case 3: System.out.println("Set new password: ");pw = read.nextLine();break;
+            case 4: {System.out.println("Set new cryptography: AES (1) ");
+                do {
+                    cryptInput = read.nextLine().replaceAll(" ", "").replaceAll("\n", "");
+                    if (!cryptInput.equals("1")) {System.out.println(textColor.RED + "Invalid input!" + textColor.RESET);}
+                } while (!cryptInput.equals("1"));
+
+                switch (cryptInput) {
+                    case "1": cryptography = Cryptography.AES;
+                    default: cryptography = Cryptography.AES;
+                }
+            }
+            case 0: System.out.println("Back");break;
+            default: System.out.println(textColor.RED + "Invalid input!" + textColor.RESET);
+        }
+
+            password.setName(name);
+            password.setCryptography(cryptography);
+            password.setCategory(category);
+            password.setPlain(this.cipherFacilityImpl.HashText(password.getCryptography(), pw));
+
+            return password;
     }
-    public static String getFullPath() {
-        return fullPath;
-    }
 
-    /** CREATE **/
-    public void createNewPasswordMenu() throws Exception {
+    /** ADD  **/
+    @Override
+    public void addNewPasswordMenu() throws Exception {
         Scanner read = new Scanner(System.in);
         System.out.println("Create NEW PW");
         System.out.println(" - CATEGORY - ");
@@ -144,7 +234,7 @@ public class PasswordServicesImpl extends Tools implements PasswordServices{
         do{
             cryptInput = read.nextLine().replaceAll(" ","").replaceAll("\n","");
             if(!cryptInput.equals("1")){
-                System.out.println(textColor.ANSI_RED + "Invalid input!" + textColor.ANSI_RESET);
+                System.out.println(textColor.RED + "Invalid input!" + textColor.RESET);
             }
         }while(!cryptInput.equals("1"));
         Cryptography crypt = null;
@@ -155,121 +245,27 @@ public class PasswordServicesImpl extends Tools implements PasswordServices{
 
         this.addNewPassword(buildPassword(category,name,crypt,this.cipherFacilityImpl.HashText(crypt,password)));
     }
-    /** BUILD **/
-    private IPassword buildPassword(String category, String name, Cryptography cryptography, String password){
-        return Password.builder()
-                .name(name)
-                .Category(category)
-                .cryptography(cryptography)
-                .plain(password)
-                .build();
-    }
-
-    /** UPDATE **/ 
-    public void updatePassword() throws Exception {
-        if(this.masterKey.getPasswords() == null){
-            System.out.println(textColor.ANSI_RED + "NO PASSWORD AVAILABLE" + textColor.ANSI_RESET);
-            return;
-        }
-        int index = this.getInputID(this.masterKey.getPasswords().size()-1);
-
-
-        ArrayList<IPassword> PasswordList =  this.masterKey.getPasswords();
-        IPassword password = this.masterKey.getPasswords().get(index);
-        IPassword newPassword = updatePasswordMenu(password);
-        PasswordList.add(newPassword);
-        deletePasswordByID(index);
-        this.updatePasswordList();
-    }
-    private IPassword updatePasswordMenu(IPassword password) throws NoSuchPaddingException, UnsupportedEncodingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
-
-        String category = password.getCategory();
-        String name = password.getName();
-        String pw = this.cipherFacilityImpl.Decrypt(password.getPlain());
-        Cryptography cryptography = password.getCryptography();
-
-        this.printUpdateMenu(category,name, pw,cryptography);
-
-
-
-        Scanner read = new Scanner(System.in);
-        String line = "";
-        do {
-            line = read.nextLine().replaceAll(" ", "").replaceAll("\n", "");
-
-            if (!line.equals("0") && !line.equals("1") && !line.equals("2") && !line.equals("3") && !line.equals("4")) {
-                System.out.println(textColor.ANSI_RED + "Invalid input!" + textColor.ANSI_RESET);
-            }
-
-        } while (line.equals("0") || line.equals("1") || line.equals("2") || line.equals("3") || line.equals("4"));
-
-
-        switch (line) {
-            case "0":
-                System.out.println("Back");
-                break;
-            case "1":
-                System.out.println("Set new category: ");
-                category = read.nextLine();
-                break;
-            case "2":
-                System.out.println("Set new name: ");
-                name = read.nextLine();
-                break;
-            case "3":
-                System.out.println("Set new password: ");
-                pw = read.nextLine();
-                break;
-            case "4": {
-                System.out.println("Set new cryptography: AES (1) ");
-
-                String cryptInput = "";
-                do {
-                    cryptInput = read.nextLine().replaceAll(" ", "").replaceAll("\n", "");
-                    if (!cryptInput.equals("1")) {
-                        System.out.println(textColor.ANSI_RED + "Invalid input!" + textColor.ANSI_RESET);
-                    }
-                } while (!cryptInput.equals("1"));
-                switch (cryptInput) {
-                    case "1":
-                        cryptography = Cryptography.AES;
-                    default:
-                        cryptography = Cryptography.AES;
-                }
-            }
-
-        }
-            name = "as";
-            password.setName(name);
-            password.setCryptography(cryptography);
-            password.setCategory(category);
-            password.setPlain(this.cipherFacilityImpl.HashText(password.getCryptography(), pw));
-            return password;
-
-    }
-
-    /** ADD  **/
-    private void addNewPassword(IPassword newPassword) throws Exception {
-        this.addNewPasswordToFile(convertPasswordToString(newPassword, countLine(this.fullPath)),this.fullPath);
+    private void addNewPassword(Password newPassword) throws Exception {
+        this.addNewPasswordToFile(convertPasswordToString(newPassword, handler.countLine(this.fullPath)),this.fullPath);
     }
     private File addNewPasswordToFile(String password, String path) throws IOException {
         File file = new File(path);
 
         if (!file.exists()) {
             file.createNewFile();
-            this.writeToFile(" __________________________________________________________________________________________________________________________",path);
-            this.writeToFile("|ID | Category           | Name           | Crypto           | Password                                                    |",path);
-            this.writeToFile("|---|--------------------|----------------|------------------|-------------------------------------------------------------|",path);
-            this.writeToFile(password,path);
+            handler.writeToFile(" __________________________________________________________________________________________________________________________",path);
+            handler.writeToFile("|ID | Category           | Name           | Crypto           | Password                                                    |",path);
+            handler.writeToFile("|---|--------------------|----------------|------------------|-------------------------------------------------------------|",path);
+            handler.writeToFile(password,path);
         }else{
             file.createNewFile();
-            this.writeToFile(password,path);
+            handler.writeToFile(password,path);
         }
         return file;
     }
 
     /** CONVERT **/
-    private String convertPasswordToString(IPassword newPassword,int number) {
+    private String convertPasswordToString(Password newPassword, int number) {
         int maxNr = 1;
         int maxCategory = 17;
         int maxName = 13;
@@ -284,77 +280,54 @@ public class PasswordServicesImpl extends Tools implements PasswordServices{
     }
 
     /** DELETE **/
+    @Override
     public void deletePasswordMenu() throws Exception {
-    loadPasswords();
+    loadPasswordList();
         System.out.println("DELETE - MENU");
         if(this.masterKey.getPasswords() == null){
-            System.out.println(textColor.ANSI_RED + "NO PASSWORD AVAILABLE" + textColor.ANSI_RESET);
+            System.out.println(textColor.RED + "NO PASSWORD AVAILABLE" + textColor.RESET);
             return;
         }
-        int index = this.getInputID(this.masterKey.getPasswords().size()-1);
+        int index = this.getInputID(this.masterKey.getPasswords().size()-1,"PW - ID ?","PASSWORD NOT AVAILABLE - TRY AGAIN");
         deletePasswordByID(index);
     }
     private void deletePasswordByID(int index) throws Exception {
-        ArrayList<IPassword> newPasswordList = this.masterKey.getPasswords();
+        ArrayList<Password> newPasswordList = this.masterKey.getPasswords();
         newPasswordList.remove(index);
         this.masterKey.setPasswords(newPasswordList);
         updatePasswordList();
     }
 
-    /** COUNTER **/
-    private int countLine(String path) throws FileNotFoundException {
-        File file = new File(path);
-        if(file.exists()){
 
-            BufferedReader datei = new BufferedReader(new FileReader(path));
-            String z = null;
-            int counter = 0;
-            while (true) {
-                try {
-                    if (!((z = datei.readLine()) != null)) break;
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                counter++;
-            }
-
-            return counter-3;
+    /** PASSWORD LIST **/
+    @Override
+    public MasterKey reloadData() throws IOException {
+        this.loadPasswordList();
+        return this.masterKey;
+    }
+    @Override
+    public void updatePasswordList() throws IOException {
+        File oldFile = new File(this.getFullPath());
+        if(oldFile.exists()){
+            oldFile.delete();
         }
-        return  0;
-    }
-
-
-
-
-
-
-
-
-
-
-    /** WRITE FILE **/
-    private void writeToFile(String text,String path) {
-
-        try (FileWriter f = new FileWriter(path, true);
-             BufferedWriter b = new BufferedWriter(f);
-             PrintWriter p = new PrintWriter(b);) {
-            p.println(text);
-
-            f.flush();
-            b.flush();
-            p.flush();
-        } catch (IOException i) {
-            i.printStackTrace();
+        if(masterKey.getPasswords()==null){
+            return;
         }
+
+        File newFile = new File("./KEY/password/password.pw");
+        int count = 0;
+        for(Password password : this.masterKey.getPasswords()){
+            addNewPasswordToFile(convertPasswordToString(password,count),newFile.getPath());
+            count ++;
+        }
+        this.loadPasswordList();
     }
-    private IPassword getPasswordByID(int id) throws IOException {
-        return loadPasswords().get(id);
-    }
-    public ArrayList<IPassword> loadPasswords() throws IOException {
+    private ArrayList<Password> loadPasswordList() throws IOException {
         File file = new File(this.fullPath);
         if(!file.exists()){return null;}
 
-        ArrayList<IPassword> PWList = new ArrayList<>();
+        ArrayList<Password> PWList = new ArrayList<>();
         BufferedReader reader;
         reader = new BufferedReader(new FileReader(this.fullPath));
 
@@ -388,23 +361,6 @@ public class PasswordServicesImpl extends Tools implements PasswordServices{
 
         this.masterKey.setPasswords(PWList);
         return PWList;
-    }
-    public void updatePasswordList() throws IOException {
-        File oldFile = new File(this.getFullPath());
-        if(oldFile.exists()){
-            oldFile.delete();
-        }
-        if(masterKey.getPasswords()==null){
-            return;
-        }
-
-        File newFile = new File("./KEY/password/password.pw");
-        int count = 0;
-        for(IPassword password : this.masterKey.getPasswords()){
-            addNewPasswordToFile(convertPasswordToString(password,count),newFile.getPath());
-            count ++;
-        }
-        this.loadPasswords();
     }
 
 }

@@ -1,15 +1,49 @@
-package handler;
+package service;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 
-public class Handler implements IHandler {
+public class FileHandlerImpl implements FileHandler {
 
-    public Handler() {
+    public FileHandlerImpl() {
     }
 
+    @Override
+    /** COUNTER **/
+    public int countLine(String path) throws FileNotFoundException {
+        File file = new File(path);
+        if(file.exists()){
+
+            BufferedReader datei = new BufferedReader(new FileReader(path));
+            String z = null;
+            int counter = 0;
+            while (true) {
+                try {
+                    if (!((z = datei.readLine()) != null)) break;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                counter++;
+            }
+
+            return counter-3;
+        }
+        return  0;
+    }
+    @Override
+    /** WRITE FILE + Append **/
+    public void writeToFile(String text,String path) {
+        try (FileWriter f = new FileWriter(path, true);
+             BufferedWriter b = new BufferedWriter(f);
+             PrintWriter p = new PrintWriter(b);) {
+            p.println(text);
+
+            f.flush();
+            b.flush();
+            p.flush();
+        } catch (IOException i) {
+            i.printStackTrace();
+        }
+    }
     @Override
     /** READ FROM FILE **/
     public String readFile(String path) throws Exception {

@@ -8,7 +8,6 @@ import java.security.NoSuchAlgorithmException;
 public class Tools {
 
 
-
     /**
      * HASH STRING
      ***********************************************/
@@ -42,12 +41,12 @@ public class Tools {
 
         return text;
     }
+
     /**************************************************************/
 
 
     protected String addSpace(int spaceSize) {
         String space = "";
-
         for (int i = 0; i <= spaceSize; i++) {
             space = space + " ";
         }

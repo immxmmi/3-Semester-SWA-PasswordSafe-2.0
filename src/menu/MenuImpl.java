@@ -3,7 +3,7 @@ package menu;
 import master.MasterKey;
 import master.MasterKeyImpl;
 import master.services.MasterKeyServices;
-import password.services.PasswordServices;
+import password.services.PasswordServicesImpl;
 import tools.Tools;
 
 import java.util.Scanner;
@@ -12,8 +12,8 @@ public class MenuImpl extends Tools implements Menu {
 
     private static String passwordFileName = "password.pw";
     private static String masterFileName = "master.pw";
-    private static PasswordServices passwordServices;
-    private static MasterKeyServices masterKeyServices = new MasterKeyServices(masterFileName,passwordServices.getFullPath());
+    private static PasswordServicesImpl passwordServicesImpl;
+    private static MasterKeyServices masterKeyServices = new MasterKeyServices(masterFileName, passwordServicesImpl.getFullPath());
     private static MasterKey masterKey = MasterKeyImpl.builder().build();
 
 
@@ -31,21 +31,18 @@ public class MenuImpl extends Tools implements Menu {
 
         while(!abort){
             printMenu();
-            String input = "";
-            do{
-                 input =  read.nextLine();
-            }while (input == "\n" || input == "\r");
-
+            int input = read.nextInt();
             switch (input){
-                case "0":{abort = true; break;}
+                case 0:{abort = true; break;}
                 /** ENTER MASTER KEY **/
-                case "1":{
+                case 1:{
                             System.out.println(ANSI_PURPLE + "Enter master password" + ANSI_RESET);
-                            String masterKey = read.next();
+                            String masterKey = read.next().replaceAll("\n","");
                             locked = !masterKeyServices.checkMasterKey(masterKey);
                             if(!locked){
                                 this.masterKey.setMasterPasswordPlain(masterKey);
-                                this.passwordServices = new PasswordServices(this.passwordFileName,this.masterKey);
+                                this.passwordServicesImpl = new PasswordServicesImpl(this.passwordFileName,this.masterKey);
+                                this.passwordServicesImpl.loadPasswords();
                                 System.out.println(ANSI_GREEN + "unlocked success" + ANSI_RESET);
                             }else{
                                 System.out.println(ANSI_RED + "Master password did not match or don't exist! Failed to unlock." + ANSI_RESET);
@@ -54,56 +51,56 @@ public class MenuImpl extends Tools implements Menu {
                             break;
                 }
                 /** PRINT PW-LIST **/
-                case "2": {
+                case 2: {
                     if (locked) {
                         System.out.println(ANSI_RED + "Please unlock first by entering the master password." + ANSI_RESET);
                     } else {
-                        passwordServices.printPasswordList();
+                        passwordServicesImpl.printPasswordList();
                         //passwordServices.printPasswordList();
                     }break;
                 }
                 /** PRINT PW **/
-                case "3": {
+                case 3: {
                     if (locked) {
                         System.out.println(ANSI_RED + "Please unlock first by entering the master password." + ANSI_RESET);
                     } else {
-                        passwordServices.printSinglePassword();
+                        passwordServicesImpl.printSinglePassword();
                     }
                     break;
                 }
                 /**  CREATE NEW PW **/
-                case "4": {
+                case 4: {
                     if (locked) {
                         System.out.println(ANSI_RED + "Please unlock first by entering the master password." + ANSI_RESET);
                     } else {
-                        PasswordServices passwordServices = new PasswordServices(passwordFileName,masterKey);
-                        passwordServices.createNewPasswordMenu();
+                        PasswordServicesImpl passwordServicesImpl = new PasswordServicesImpl(passwordFileName,masterKey);
+                        passwordServicesImpl.createNewPasswordMenu();
                     }
                     break;
                 }
                 /** DELETE PW **/
-                case "5": {
+                case 5: {
                     if (locked) {
                         System.out.println(ANSI_RED + "Please unlock first by entering the master password." + ANSI_RESET);
                     } else {
                         System.out.println("Enter password name");
-                        this.passwordServices.deletePasswordMenu();
+                        this.passwordServicesImpl.deletePasswordMenu();
                     }
                     break;
                 }
                 /** UPDATE PW **/
-                case "6": {
+                case 6: {
                     if (locked) {
                         System.out.println(ANSI_RED + "Please unlock first by entering the master password." + ANSI_RESET);
                     } else {
-                        this.passwordServices.updatePassword();
+                        this.passwordServicesImpl.updatePassword();
                     }
                     break;
                 }
                 /** CREATE SET NEW MASTER KEY**/
-                case "7":{
+                case 7:{
                     locked = true;
-                    this.masterKeyServices = new MasterKeyServices(this.masterFileName,this.passwordServices.getFullPath());
+                    this.masterKeyServices = new MasterKeyServices(this.masterFileName,this.passwordServicesImpl.getFullPath());
                     this.masterKeyServices.setNewMasterKey();
                     this.masterKey.setPasswords(null);
                     break;

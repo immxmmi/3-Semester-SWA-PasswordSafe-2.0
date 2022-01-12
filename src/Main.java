@@ -3,6 +3,7 @@ import menu.MenuImpl;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.Scanner;
 import java.util.jar.JarOutputStream;
 
 public class Main {
@@ -19,7 +20,6 @@ public class Main {
         Menu menu = new MenuImpl();
         menu.startMenu();
         System.out.println("Good by !");
-
     }
 
 }

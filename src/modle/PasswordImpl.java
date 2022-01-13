@@ -4,7 +4,7 @@ import crypto.Cryptography;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
-import password.Password;
+import utility.Password;
 
 
 @Builder(toBuilder = true)

@@ -1,7 +1,7 @@
-import config.ConfigImpl;
-import config.Config;
-import menu.Menu;
-import menu.MenuImpl;
+import service.ConfigServicesImpl;
+import utility.Config;
+import utility.Menu;
+import service.MenuImpl;
 
 import java.io.File;
 import java.io.IOException;
@@ -9,10 +9,11 @@ import java.io.IOException;
 public class Main {
 
     /** ROOT **/
+    private static ConfigServicesImpl configServices = new ConfigServicesImpl();
     static Config config;
     static {
         try {
-            config = new ConfigImpl(true);
+            config = configServices.loadConfigFile();
         } catch (IOException e) {
             e.printStackTrace();
         }

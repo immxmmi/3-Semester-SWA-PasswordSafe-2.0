@@ -3,6 +3,7 @@ package crypto;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import utility.CipherFacility;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;

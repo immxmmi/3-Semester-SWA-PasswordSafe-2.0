@@ -4,8 +4,8 @@ import crypto.Cryptography;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
-import master.MasterKey;
-import password.Password;
+import utility.MasterKey;
+import utility.Password;
 
 import java.util.ArrayList;
 
